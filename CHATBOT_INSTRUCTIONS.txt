@@ -1,0 +1,28 @@
+Goal for the next three weeks: write a chatbot. Minimally, it should be able to do basic chit-chat (greetings, introduction (of abilities), goodbye), and be able to answer (with some accuracy) at least two types of domain-specific questions. For example, if you chose movies, it might be able to give a quote from a given actor (or movie), tell you when an actor was born, or list a director's films. Note that some of these sound amendable to database look-up, but that is not explicitly the goal (you might well not even set up a database). It would be nice to see features relying on synonym-detection (e.g., using pre-trained spaCy GloVe vectors)
+
+For week 1, I recommend starting by getting a Telegram bot set up, playing with the basic Markov Chain text generator (markov_norder.py), deciding on your basic domain, coming up with a list of possible query types, and look for a dataset. 
+
+For week 2, you should be implementing at least some basic queries (i.e. mostly substitution-based), and starting to integrate smarter functions (e.g., similarity-based substitution for recognition or answering). In week 3, try to improve usability: have some people use it, see what modifications are needed to make it more natural.
+
+I'd like the whole thing to be turned in as a GitHub repo, with a complete README.md describing what you've done and giving an example dialogue demoing it. 
+
+I strongly encourage you to try using spaCy (note that it's a 1.5gb install with the GloVe vectors) for the more ambitious functions: https://spacy.io/docs/usage/
+
+Chatbot resources:
+http://www.nltk.org/api/nltk.chat.html
+http://www.wildml.com/2016/04/deep-learning-for-chatbots-part-1-introduction/
+http://www.wildml.com/2016/07/deep-learning-for-chatbots-2-retrieval-based-model-tensorflow/
+
+Useful corpora:
+http://www.cs.cornell.edu/~cristian/Cornell_Movie-Dialogs_Corpus.html (617 movies)
+the presidential speeches included here, and others on Blackboard/Google...
+
+Need some more data? Web scraping resources*:
+https://first-web-scraper.readthedocs.io/en/latest/#act-3-web-scraping
+https://doc.scrapy.org/en/latest/intro/tutorial.html
+
+There are now actually good scraping tutorials, libraries (rvest), and text manipulation libraries (tidytext) for R, too: 
+https://blog.rstudio.org/2014/11/24/rvest-easy-web-scraping-with-r/
+You could gather your domain-specific data this way, and then output it to 
+
+* If you set out to scrape some data, be gentle! Use good etiquette: respect robots.txt and use delays to not hammer servers too hard. Use common sense: start small (a few pages, not following all links), cache pages and don't repeatedly visit them, and scale slowly once you're sure you're being kind.
