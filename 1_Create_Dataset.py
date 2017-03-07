@@ -7,6 +7,7 @@ from tqdm import tqdm
 
 DIGIT_STRINGS = ["1","2","3","4","5","6","7","8","9"]
 START_VOCAB = ["_PAD", "_GO", "_EOS", "_UNK"]
+BUCKETS = [5,10,15,20]
 
 def save(item,path):
     with gzip.open(path,"w") as f:
@@ -50,88 +51,70 @@ def normalize_digits(text):
             text_zero[sentence_idx][word_idx] = word
     return text_zero
 
-def create_vocab(data, max_vocab_len):
-    vocab = {}
-    for text in tqdm(data):
-        for sentence in text:
-            for word in sentence:
-                if word in vocab:
-                    vocab[word] += 1
-                else:
-                    vocab[word] = 1
-    vocab_list = START_VOCAB + sorted(vocab, key=vocab.get, reverse=True)
-    if len(vocab_list) > max_vocab_len:
-        vocab_list = vocab_list[:max_vocab_len]
-    vocab = dict(zip(vocab_list,range(len(vocab_list))))
-    return vocab
+def create_vocab(vocab_count, max_vocab_len):
+    vocab_token2text = START_VOCAB + sorted(vocab_count, key=vocab_count.get, reverse=True)
+    if len(vocab_token2text) > max_vocab_len:
+        vocab_token2text = vocab_token2text[:max_vocab_len]
+    vocab_text2token = dict(zip(vocab_token2text,range(len(vocab_token2text))))
+    return vocab_text2token, vocab_token2text
 
-def data_to_tokens(data, vocab):
-    data_token = copy.deepcopy(data)
-    for text_idx in tqdm(range(len(data))):
-        text = data[text_idx]
-        for sentence_idx in range(len(text)):
-            sentence = text[sentence_idx]
-            for word_idx in range(len(sentence)):
-                word = sentence[word_idx]
-                if word in vocab:
-                    data_token[text_idx][sentence_idx][word_idx] = vocab[word]
-                else:
-                    data_token[text_idx][sentence_idx][word_idx] = vocab["_UNK"]
-    return data_token
-
-def pad_input(sentence,bucket):
+def pad_input(vocab,sentence,bucket):
     sentence += [vocab["_PAD"]] * (bucket - len(sentence))
     sentence = list(reversed(sentence))
     return sentence
 
-def pad_output(sentence,bucket):
+def pad_output(vocab,sentence,bucket):
     sentence = [vocab["_GO"]] + sentence + [vocab["_EOS"]] + [vocab["_PAD"]] * (bucket - len(sentence))
-    return sentence
-
-def create_dataset(data):
-    bucket_5 = []
-    bucket_10 = []
-    bucket_15 = []
-    bucket_20 = []
-    for text in tqdm(data):
-        input_sentence = []
-        for output_sentence in text:
-            if len(input_sentence) > 0:
-                if len(input_sentence) <= 5 and len(output_sentence) <= 5:
-                    bucket_5.append([pad_input(input_sentence,5), pad_output(output_sentence,5)])
-                elif len(input_sentence) <= 10 and len(output_sentence) <= 10:
-                    bucket_10.append([pad_input(input_sentence,10), pad_output(output_sentence,10)])
-                elif len(input_sentence) <= 15 and len(output_sentence) <= 15:
-                    bucket_15.append([pad_input(input_sentence,15), pad_output(output_sentence,15)])
-                elif len(input_sentence) <= 20 and len(output_sentence) <= 20:
-                    bucket_20.append([pad_input(input_sentence,20), pad_output(output_sentence,20)])
-            input_sentence = output_sentence
-    dataset = [bucket_5,bucket_10,bucket_15,bucket_20]
-    return dataset      
+    return sentence 
 
 if __name__ == "__main__":
+    
+    movie_folders = glob("Data/*/*/*/*/*")[:1000]
+    
     # Loading and Preprocessing Text Files
-    print("Loading and Preprocessing XML Files")
-    movie_folders = glob("Data/*/*/*/*/*")
-    data_raw = []
+    # And Create Vocabulary
+    print("Loading and Preprocessing XML Files to Create Vocabulary")
+    vocab_count = {}
     for movie_folder in tqdm(movie_folders):
         file_path = glob(movie_folder+'/*')[0]
         text_raw = extract_text(file_path)
         text_lower = lowercase(text_raw)
         text = normalize_digits(text_lower)
-        data_raw.append(text)
+        for sentence in text:
+            for word in sentence:
+                if word in vocab_count:
+                    vocab_count[word] += 1
+                else:
+                    vocab_count[word] = 1
+    vocab_text2token, vocab_token2text = create_vocab(vocab_count, 50000)
+    save(vocab_text2token,"Data/vocab_text2token.pkl.gz")
+    save(vocab_token2text,"Data/vocab_token2text.pkl.gz")
     
-    # Creating and Saving Vocabulary
-    print("\nCreating Vocabulary")
-    vocab = create_vocab(data_raw, 50000)
-    save(vocab,"Data/vocab.pkl.gz")
-    
-    # Use Vocabulary to rewrite Data
-    print("\nTokenizing Data")
-    data_token = data_to_tokens(data_raw, vocab)
-    
-    # Create the Final Dataset (with vocab-tokens, input-output sentences together + padded & in buckets)
-    print("\nCreating Dataset")
-    dataset = create_dataset(data_token)
-    print("\nSaving Dataset")
+    # Loading and Preprocessing Text Files
+    # And Create DataSet (of Tokens)
+    print("\nLoading and Preprocessing XML Files to Create Dataset")
+    dataset = []
+    for _ in range(len(BUCKETS)):
+        dataset.append([])
+    for movie_folder in tqdm(movie_folders):
+        file_path = glob(movie_folder+'/*')[0]
+        text_raw = extract_text(file_path)
+        text_lower = lowercase(text_raw)
+        text = normalize_digits(text_lower)
+        text_token = copy.deepcopy(text)
+        for sentence_idx in range(len(text)):
+            sentence = text[sentence_idx]
+            for word_idx in range(len(sentence)):
+                word = sentence[word_idx]
+                if word in vocab_text2token:
+                    text_token[sentence_idx][word_idx] = vocab_text2token[word]
+                else:
+                    text_token[sentence_idx][word_idx] = vocab_text2token["_UNK"]
+        input_sentence = []
+        for output_sentence in text_token:
+            if len(input_sentence) > 0:
+                for bucket_idx in range(len(BUCKETS)):
+                    if len(input_sentence) <= BUCKETS[bucket_idx] and len(output_sentence) <= BUCKETS[bucket_idx]:
+                        dataset[bucket_idx].append([pad_input(vocab_text2token,input_sentence,BUCKETS[bucket_idx]), pad_output(vocab_text2token,output_sentence,BUCKETS[bucket_idx])])
+            input_sentence = output_sentence
     save(dataset,"Data/dataset.pkl.gz")
