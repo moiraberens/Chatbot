@@ -1,3 +1,9 @@
+#######################
+# Uses the following dataset:
+# http://opus.lingfil.uu.se/download.php?f=OpenSubtitles2016/en.tar.gz
+# Extracted to Data/
+#######################
+
 import gzip
 import xml.etree.ElementTree as ET
 import pickle
