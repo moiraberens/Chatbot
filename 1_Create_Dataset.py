@@ -97,12 +97,12 @@ if __name__ == "__main__":
     save(vocab_token2text,"Data/vocab_token2text.pkl.gz")
     
     # Loading and Preprocessing Text Files
-    # And Create DataSet (of Tokens)
-    print("\nLoading and Preprocessing XML Files to Create Dataset")
+    # And Create Test DataSet (of Tokens)
+    print("\nLoading and Preprocessing XML Files to Create Train Dataset")
     dataset = []
     for _ in range(len(BUCKETS)):
         dataset.append([])
-    for movie_folder in tqdm(movie_folders):
+    for movie_folder in tqdm(movie_folders[:800]):
         file_path = glob(movie_folder+'/*')[0]
         text_raw = extract_text(file_path)
         text_lower = lowercase(text_raw)
@@ -123,4 +123,33 @@ if __name__ == "__main__":
                     if len(input_sentence) <= BUCKETS[bucket_idx] and len(output_sentence) <= BUCKETS[bucket_idx]:
                         dataset[bucket_idx].append([pad_input(vocab_text2token,input_sentence,BUCKETS[bucket_idx]), pad_output(vocab_text2token,output_sentence,BUCKETS[bucket_idx])])
             input_sentence = output_sentence
-    save(dataset,"Data/dataset.pkl.gz")
+    save(dataset,"Data/dataset_train.pkl.gz")
+    
+    # Loading and Preprocessing Text Files
+    # And Create Test DataSet (of Tokens)
+    print("\nLoading and Preprocessing XML Files to Create Test Dataset")
+    dataset = []
+    for _ in range(len(BUCKETS)):
+        dataset.append([])
+    for movie_folder in tqdm(movie_folders[800:]):
+        file_path = glob(movie_folder+'/*')[0]
+        text_raw = extract_text(file_path)
+        text_lower = lowercase(text_raw)
+        text = normalize_digits(text_lower)
+        text_token = copy.deepcopy(text)
+        for sentence_idx in range(len(text)):
+            sentence = text[sentence_idx]
+            for word_idx in range(len(sentence)):
+                word = sentence[word_idx]
+                if word in vocab_text2token:
+                    text_token[sentence_idx][word_idx] = vocab_text2token[word]
+                else:
+                    text_token[sentence_idx][word_idx] = vocab_text2token["_UNK"]
+        input_sentence = []
+        for output_sentence in text_token:
+            if len(input_sentence) > 0:
+                for bucket_idx in range(len(BUCKETS)):
+                    if len(input_sentence) <= BUCKETS[bucket_idx] and len(output_sentence) <= BUCKETS[bucket_idx]:
+                        dataset[bucket_idx].append([pad_input(vocab_text2token,input_sentence,BUCKETS[bucket_idx]), pad_output(vocab_text2token,output_sentence,BUCKETS[bucket_idx])])
+            input_sentence = output_sentence
+    save(dataset,"Data/dataset_test.pkl.gz")

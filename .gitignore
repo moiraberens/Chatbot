@@ -7,3 +7,6 @@ Desktop.ini
 
 # Data Folder
 Data/OpenSubtitles2016/
+
+# Cache Folder
+__pycache__/
