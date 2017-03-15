@@ -36,9 +36,9 @@ In the end all the models did reach a perplexity around 30, but the results are 
 The bot gives mostly very short answers, it repeats a lot of answers and it uses a lot of punctuation marks.
  
 Moreover, the bot has some problems with punctuation marks in the question. If you ask the question "Are you mark" the bot will answer "-", 
-but if you ask "Are you Mark?" it will say "Yes". I think this characteristic of the bot is not nice.
+but if you ask "Are you Mark?" it will say "Yes". We think this characteristic of the bot is not nice.
  
-In the end we think that we could inprove the model by using more data, more training iteration and/or a larger model.
+In the end we think that we could improve the model by using more data, more training iteration and/or a larger model.
  
 However, after some research on the internet we found out that we are not the only one who have some problems with reproducing the results of the paper. 
 
