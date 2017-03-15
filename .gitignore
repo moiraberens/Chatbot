@@ -8,5 +8,8 @@ Desktop.ini
 # Data Folder
 Data/OpenSubtitles2016/
 
+# Model Folder
+Model/
+
 # Cache Folder
 __pycache__/

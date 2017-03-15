@@ -26,8 +26,6 @@ np.set_printoptions(threshold=np.nan)
 from six.moves import xrange  # pylint: disable=redefined-builtin
 import tensorflow as tf
 
-import data_utils
-
 
 class Seq2SeqModel(object):
   """Sequence-to-sequence model with attention and for multiple buckets.
@@ -184,11 +182,11 @@ class Seq2SeqModel(object):
     if not forward_only:
       self.gradient_norms = []
       self.updates = []
-      opt = tf.train.GradientDescentOptimizer(self.learning_rate)
+      #opt = tf.train.GradientDescentOptimizer(self.learning_rate)
+      opt = tf.train.MomentumOptimizer(self.learning_rate, 0.9, use_nesterov=True)
       for b in xrange(len(buckets)):
         gradients = tf.gradients(self.losses[b], params)
-        clipped_gradients, norm = tf.clip_by_global_norm(gradients,
-                                                         max_gradient_norm)
+        clipped_gradients, norm = tf.clip_by_global_norm(gradients, max_gradient_norm)
         self.gradient_norms.append(norm)
         self.updates.append(opt.apply_gradients(
             zip(clipped_gradients, params), global_step=self.global_step))
@@ -288,7 +286,19 @@ class Seq2SeqModel(object):
         # The corresponding target is decoder_input shifted by 1 forward.
         if length_idx < decoder_size - 1:
           target = decoder_inputs[batch_idx][length_idx + 1]
-        if length_idx == decoder_size - 1 or target == data_utils.PAD_ID:
+        if length_idx == decoder_size - 1 or target == 0:
           batch_weight[batch_idx] = 0.0
       batch_weights.append(batch_weight)
-    return batch_encoder_inputs, batch_decoder_inputs, batch_weights    
+    return batch_encoder_inputs, batch_decoder_inputs, batch_weights
+
+  def get_decoder_batch(self, sentence, bucket):
+      encoder_size, decoder_size = bucket
+      
+      batch_encoder_inputs, batch_decoder_inputs, batch_weights = [], [], []
+      
+      for length_idx in xrange(encoder_size):
+          batch_encoder_inputs.append(np.array([sentence[length_idx]], dtype=np.int32))
+      for length_idx in xrange(decoder_size):
+          batch_decoder_inputs.append(np.array([0], dtype=np.int32))
+          batch_weights.append(np.array([0], dtype=np.float32))
+      return batch_encoder_inputs, batch_decoder_inputs, batch_weights
